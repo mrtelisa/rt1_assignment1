@@ -39,7 +39,6 @@ void stopTurtle(ros::Publisher& pub){
     stop.linear.y = 0;
     stop.angular.z = 0;
     pub.publish(stop);
-
 }
 
 
@@ -93,9 +92,7 @@ int main (int argc, char **argv)
                 stopTurtle(pub_turtle2);
                 std::cout << "turtle2 too close!\n";
             }
-
         }
-
     }
 
 	return 0;

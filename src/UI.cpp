@@ -25,7 +25,6 @@ void stopTurtle(ros::Publisher& pub){
     stop.linear.y = 0;
     stop.angular.z = 0;
     pub.publish(stop);
-
 }
 
 int main (int argc, char **argv)

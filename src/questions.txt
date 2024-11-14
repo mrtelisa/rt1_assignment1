@@ -1,0 +1,4 @@
+Domande da fare:
+    1. quando le tartarughe si scontrano nel nodo2, devo fare in modo che si risistemino in modo da poterle poi muovere
+       o devo rirunnare il nodo?
+    2. la distanza deve anche essere printata a schermo o basta farla pubblicare da un publisher?
