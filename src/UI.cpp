@@ -2,6 +2,7 @@
 #include "turtlesim/Pose.h"
 #include "geometry_msgs/Twist.h"
 #include "turtlesim/Spawn.h"
+#include "std_msgs/String.h"
 #include <string>
 #include <iostream>
 
@@ -46,6 +47,9 @@ int main (int argc, char **argv)
 	// Initialising publisher and subcriber
     ros::Publisher pub_turtle1 = nh.advertise<geometry_msgs::Twist>("/turtle1/cmd_vel", 10);
 	ros::Publisher pub_turtle2 = nh.advertise<geometry_msgs::Twist>("/turtle2/cmd_vel", 10);
+
+    // Publisher to let the second node know which turtle is moving
+    ros::Publisher turtle_pub = nh.advertise<std_msgs::String>("/selected_turtle", 10);
 	     	
     std::string selected_turtle;
     double linear_vel_x, linear_vel_y, angular_vel;
@@ -60,6 +64,11 @@ int main (int argc, char **argv)
             std::cout << "Error: non valid name. Please retry.\n";
             continue;
         }
+
+        // Publishing info about the selected_turtle
+        std_msgs::String turtle_msg;
+        turtle_msg.data = selected_turtle;
+        turtle_pub.publish(turtle_msg);
 
         // User input for setting velocities
         std::cout << "Insert linear velocity along x-axis:";
