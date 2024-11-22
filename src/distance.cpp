@@ -41,6 +41,35 @@ void stopTurtle(ros::Publisher& pub){
     pub.publish(stop);
 }
 
+void moveTurtle(ros::Publisher& pub, const turtlesim::Pose& pose){
+    geometry_msgs::Twist move;
+    if (pose.x <= 1) {
+        move.linear.x = 1.0;
+    } else if (pose.x >= 10) {
+        move.linear.x = -1.0;
+    }
+
+    if (pose.y <= 1) {
+        move.linear.y = 1.0;
+    } else if (pose.y >= 10) {
+        move.linear.y = -1.0;
+    }
+
+    pub.publish(move);
+}
+
+void separateTurtles(ros::Publisher& pub, const turtlesim::Pose& pose1, const turtlesim::Pose& pose2){
+    geometry_msgs::Twist move;
+    
+    if (calculateDist(pose1, pose2) < 1) {
+        move.linear.x = (pose1.x < pose2.x) ? -0.5 : 0.5;
+        move.linear.y = (pose1.y < pose2.y) ? -0.5 : 0.5;
+        pub.publish(move);
+    } else {
+        stopTurtle(pub);
+    } 
+}
+
 
 int main (int argc, char **argv)
 {
@@ -68,31 +97,35 @@ int main (int argc, char **argv)
         if (selected_turtle == "turtle1") {
 
             if (turtle1_pose.x > 10 || turtle1_pose.y > 10 || turtle1_pose.x < 1 || turtle1_pose.y < 1) {
-
-                stopTurtle(pub_turtle1);
+                moveTurtle(pub_turtle1, turtle1_pose);
                 std::cout << "Stopping turtle1 due to position limits.\n";
-            }
-
-            if(dist <= 1){
-
                 stopTurtle(pub_turtle1);
-                std::cout << "turtle1 too close!\n";
             }
+            
+            if (dist <= 1){
+                separateTurtles(pub_turtle1, turtle1_pose, turtle2_pose);
+                std::cout << "turtle1 too close!\n";
+                stopTurtle(pub_turtle1);
+            }
+            
 
         } else if (selected_turtle == "turtle2") {
 
             if (turtle2_pose.x > 10 || turtle2_pose.y > 10 || turtle2_pose.x < 1 || turtle2_pose.y < 1) {
-
-                stopTurtle(pub_turtle2);
+                moveTurtle(pub_turtle2, turtle2_pose);
                 std::cout << "Stopping turtle2 due to position limits.\n";
-            }
-
-            if(dist <= 1){
-
                 stopTurtle(pub_turtle2);
-                std::cout << "turtle2 too close!\n";
             }
+            
+            if (dist <= 1){
+                separateTurtles(pub_turtle2, turtle1_pose, turtle2_pose);
+                std::cout << "turtle2 too close!\n";
+                stopTurtle(pub_turtle2);
+            }
+
         }
+        
+        rate.sleep();
     }
 
 	return 0;

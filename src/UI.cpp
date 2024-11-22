@@ -31,6 +31,8 @@ int main (int argc, char **argv)
 {
 	ros::init(argc, argv, "turtle_control");  
 	ros::NodeHandle nh;
+    
+    ros::Duration duration_movement(1, 0);
 	
     // Service client to spawn a new turtle
 	ros::ServiceClient client1 =  nh.serviceClient<turtlesim::Spawn>("/spawn");
@@ -59,7 +61,6 @@ int main (int argc, char **argv)
         std::cin >> selected_turtle;
 
         if (selected_turtle != "turtle1" && selected_turtle != "turtle2"){
-
             std::cout << "Error: non valid name. Please retry.\n";
             continue;
         }
@@ -80,27 +81,33 @@ int main (int argc, char **argv)
         std::cin >> angular_vel;
 
         // Sending commands to the turtle thanks to the void function
-        if (selected_turtle == "turtle1"){
-            setVel(pub_turtle1, linear_vel_x, linear_vel_y, angular_vel);
-        }
-
-        if (selected_turtle == "turtle2"){
-            setVel(pub_turtle2, linear_vel_x, linear_vel_y, angular_vel);
-        }
-
         std::cout << "Command sent to" << selected_turtle << "\n";
+        
+        ros::Rate loop_rate(10);
+        ros::Time starting_time = ros::Time::now();
 
-        // Waiting 1 second
-        ros::Duration(1.0).sleep();
+        while(ros::ok() && ros::Time::now() - starting_time < duration_movement){
+            
+            if (selected_turtle == "turtle1"){
+                setVel(pub_turtle1, linear_vel_x, linear_vel_y, angular_vel);
+            }
 
-        // Making the selected_turtle stop
+            if (selected_turtle == "turtle2"){
+                setVel(pub_turtle2, linear_vel_x, linear_vel_y, angular_vel);
+            }
+            ros::spinOnce();
+            loop_rate.sleep();
+        }
+
         if (selected_turtle == "turtle1"){
-            stopTurtle(pub_turtle1);
+                stopTurtle(pub_turtle1);
         }
 
         if (selected_turtle == "turtle2"){
             stopTurtle(pub_turtle2);
         }
+        
+        ros::spinOnce();
     }
 
 	return 0;
