@@ -39,8 +39,8 @@ int main (int argc, char **argv)
 
 	// Modify the starting position of "turtle2"
 	turtlesim::Spawn srv1;
-	srv1.request.x = 2.0;  
-	srv1.request.y = 1.0;
+	srv1.request.x = 3.0;  
+	srv1.request.y = 3.0;
 	srv1.request.theta = 0.0;
 	srv1.request.name = "turtle2";
 	client1.call(srv1);
