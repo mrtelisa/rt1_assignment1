@@ -32,15 +32,15 @@ int main (int argc, char **argv)
 	ros::init(argc, argv, "turtle_control");  
 	ros::NodeHandle nh;
     
-    ros::Duration duration_movement(1, 0);
+    ros::Duration duration_movement(6, 0);
 	
     // Service client to spawn a new turtle
 	ros::ServiceClient client1 =  nh.serviceClient<turtlesim::Spawn>("/spawn");
 
 	// Modify the starting position of "turtle2"
 	turtlesim::Spawn srv1;
-	srv1.request.x = 3.0;  
-	srv1.request.y = 3.0;
+	srv1.request.x = 2.5;  
+	srv1.request.y = 2.5;
 	srv1.request.theta = 0.0;
 	srv1.request.name = "turtle2";
 	client1.call(srv1);
@@ -86,15 +86,16 @@ int main (int argc, char **argv)
         ros::Rate loop_rate(10);
         ros::Time starting_time = ros::Time::now();
 
-        while(ros::ok() && ros::Time::now() - starting_time < duration_movement){
             
-            if (selected_turtle == "turtle1"){
-                setVel(pub_turtle1, linear_vel_x, linear_vel_y, angular_vel);
-            }
+        if (selected_turtle == "turtle1"){
+            setVel(pub_turtle1, linear_vel_x, linear_vel_y, angular_vel);
+        }
 
-            if (selected_turtle == "turtle2"){
-                setVel(pub_turtle2, linear_vel_x, linear_vel_y, angular_vel);
-            }
+        if (selected_turtle == "turtle2"){
+            setVel(pub_turtle2, linear_vel_x, linear_vel_y, angular_vel);
+        }
+
+        while(ros::ok() && ros::Time::now() - starting_time < duration_movement){
             ros::spinOnce();
             loop_rate.sleep();
         }

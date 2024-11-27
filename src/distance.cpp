@@ -7,61 +7,58 @@
 #include <iostream>
 #include <cmath>
 
-turtlesim::Pose turtle1_pose, turtle2_pose;
-turtlesim::Pose turtle1_prev, turtle2_prev;
-double prev_dist = 0.0;
+//turtlesim::Pose turtle1_pose, turtle2_pose;
+//turtlesim::Pose turtle1_prev, turtle2_prev;
+//double prev_dist = 0.0;
 
 ros::Publisher pub_turtle1;
 ros::Publisher pub_turtle2;
 ros::Publisher dist_pub;
 
-geometry_msgs::Twist stop_msg;
+geometry_msgs::Twist stop_msg{};
 
-std::string selected_turtle;
+float x_turtle1[2] = {0,0},
+      y_turtle1[2] = {0,0},
+      x_turtle2[2] = {0,0},
+      y_turtle2[2] = {0,0};
 
-// Callback to update turtle1 position
-void turtle1PoseCallback(const turtlesim::Pose::ConstPtr& msg) {
-    turtle1_prev = turtle1_pose;
-    turtle1_pose = *msg;
-}
+float distance[2] = {0,0};
 
-// Callback to update turtle2 position
-void turtle2PoseCallback(const turtlesim::Pose::ConstPtr& msg) {
-    turtle2_prev = turtle2_pose;
-    turtle2_pose = *msg;
-}
+bool bord_dist1 = false;
+bool bord_dist2 = false;
+bool stop;
 
-// Calculating the distance between the two turtles
-double calculateDist(const turtlesim::Pose& pose1, const turtlesim::Pose& pose2) {
-    return std::sqrt(std::pow(pose2.x - pose1.x, 2) + std::pow(pose2.y - pose1.y, 2));
-}
+void handle_stopping(){
+    if(stop){
+        ROS_INFO("Stopping the turtles due to collision.");
+        stop =  false;
+        pub_turtle1.publish(stop_msg);
+        pub_turtle2.publish(stop_msg);
+    }
 
-// Getting the name of the turtle which is moving
-void selectedTurtleCallback(const std_msgs::String::ConstPtr& msg) {
-    selected_turtle = msg->data;
-}
-
-// Function to stop the turtle
-void stopTurtle(double dist){
-    bool collision = (dist < 1.0 && dist < prev_dist);
-    bool turtle1_border = (turtle1_pose.x >= 9 || turtle1_pose.x <= 2 || turtle1_pose.y >= 9 || turtle1_pose.y <= 2);
-    bool turtle2_border = (turtle2_pose.x >= 9 || turtle2_pose.x <= 2 || turtle2_pose.y >= 9 || turtle2_pose.y <= 2);
+    if(bord_dist1){
+        ROS_INFO("Stopping turtle1 due to collision with the border.");
+        bord_dist1 = false;
+    }
     
-    if(collision){
-        ROS_INFO("Stopping turtles due to collision.");
-        pub_turtle1.publish(stop_msg);
-        pub_turtle2.publish(stop_msg);
+    if(bord_dist2){
+        ROS_INFO("Stopping turtle2 due to collision with the border.");
+        bord_dist2 = false;
     }
+}
 
-    if(turtle1_border){
-        ROS_INFO("Stopping turtle1 due to border collision.");
-        pub_turtle1.publish(stop_msg);
-    }
+void set_vel1(const turtlesim::Pose::ConstPtr& msg){
+    x_turtle1[1] = x_turtle1[0];
+    y_turtle1[1] = y_turtle1[0];
+    x_turtle1[0] = msg->x;
+    y_turtle1[0] = msg->y;
+}
 
-    if(turtle2_border){
-        ROS_INFO("Stopping turtle2 due to border collision.");
-        pub_turtle2.publish(stop_msg);
-    }
+void set_vel2(const turtlesim::Pose::ConstPtr& msg){
+    x_turtle2[1] = x_turtle2[0];
+    y_turtle2[1] = y_turtle2[0];
+    x_turtle2[0] = msg->x;
+    y_turtle2[0] = msg->y;
 }
 
 
@@ -69,36 +66,53 @@ int main (int argc, char **argv){
 
 	ros::init(argc, argv, "turtle_distance");  
 	ros::NodeHandle nh;
-	
+
+    dist_pub = nh.advertise<std_msgs::Float32>("turtle_distance", 1);
+    std_msgs::Float32 distance_msg;
+
 	// Initialising publisher and subcriber
     pub_turtle1 = nh.advertise<geometry_msgs::Twist>("/turtle1/cmd_vel", 1);
     pub_turtle2 = nh.advertise<geometry_msgs::Twist>("/turtle2/cmd_vel", 1);
-    dist_pub = nh.advertise<std_msgs::Float32>("turtle_distance", 1);
 
-    ros::Subscriber sub_turtle1 = nh.subscribe("/turtle1/pose", 10, turtle1PoseCallback);
-    ros::Subscriber sub_turtle2 = nh.subscribe("/turtle2/pose", 10, turtle2PoseCallback);
-
-    // Subscriber for selected turtle
-    ros::Subscriber turtle_sub = nh.subscribe("/selected_turtle", 10, selectedTurtleCallback);
-
-    // Stop message initialization
-    stop_msg.linear.x = 0.0;
-    stop_msg.linear.y = 0.0;
-    stop_msg.angular.z = 0.0;
+    ros::Subscriber sub_turtle1 = nh.subscribe("/turtle1/pose", 10, set_vel1);
+    ros::Subscriber sub_turtle2 = nh.subscribe("/turtle2/pose", 10, set_vel2);
 
     ros::Rate rate(10);	
     
     while(ros::ok()){        
-        double dist = calculateDist(turtle1_pose, turtle2_pose);
+        
+        distance[1] =  distance[0];
+        distance[0] = sqrt(pow(x_turtle1[0] - x_turtle2[0], 2) + pow(y_turtle1[0] - y_turtle2[0], 2));
+        
+        distance_msg.data =  distance[0];
+        dist_pub.publish(distance_msg);
 
-        std_msgs::Float32 dist_msg;
-        dist_msg.data = dist; 
-        dist_pub.publish(dist_msg);
+        if(distance[0] < 1 && distance[0] < distance[1]) { 
+            stop = true; 
+        }
 
-        stopTurtle(dist);
+        bool turtle1_border = ((x_turtle1[0] >= 9 && (x_turtle1[0] > x_turtle1[1]))||
+                               (x_turtle1[0] <= 2 && (x_turtle1[0] < x_turtle1[1]))||
+                               (y_turtle1[0] >= 9 && (y_turtle1[0] > y_turtle1[1]))||
+                               (y_turtle1[0] <= 2 && (y_turtle1[0] < y_turtle1[1])));
+        bool turtle2_border = ((x_turtle2[0] >= 9 && (x_turtle2[0] > x_turtle2[1]))||
+                               (x_turtle2[0] <= 2 && (x_turtle2[0] < x_turtle2[1]))||
+                               (y_turtle2[0] >= 9 && (y_turtle2[0] > y_turtle2[1]))||
+                               (y_turtle2[0] <= 2 && (y_turtle2[0] < y_turtle2[1])));
+        
+        if(turtle1_border) {
+            bord_dist1 = true;
+            pub_turtle1.publish(stop_msg);
 
-        prev_dist = dist;
-    
+        }
+
+        if(turtle2_border) {
+            bord_dist2 = true;    
+            pub_turtle2.publish(stop_msg);
+        }
+
+        handle_stopping();
+
         ros::spinOnce();
         rate.sleep();
     }
